@@ -46,7 +46,9 @@ import DetectorRunner, { DetectorRequestBody } from 'components/model-runner-mod
 import LabelSelector from 'components/label-selector/label-selector';
 import CVATTooltip from 'components/common/cvat-tooltip';
 
-import ApproximationAccuracy from 'components/annotation-page/standard-workspace/controls-side-bar/approximation-accuracy';
+import ApproximationAccuracy, {
+    thresholdFromAccuracy,
+} from 'components/annotation-page/standard-workspace/controls-side-bar/approximation-accuracy';
 import { switchToolsBlockerState } from 'actions/settings-actions';
 import { ReactMarkdown } from 'react-markdown/lib/react-markdown';
 import withVisibilityHandling from './handle-popover-visibility';
@@ -144,6 +146,8 @@ interface State {
     activeLabelID: number | null;
     activeTracker: MLModel | null;
     convertMasksToPolygons: boolean;
+    convertMasksToRotatedRects: boolean,
+    keepOriginalMaskWhenConverting: boolean,
     trackedShapes: TrackedShape[];
     fetching: boolean;
     pointsReceived: boolean;
@@ -233,6 +237,8 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
         super(props);
         this.state = {
             convertMasksToPolygons: false,
+            convertMasksToRotatedRects: false,
+            keepOriginalMaskWhenConverting: false,
             activeInteractor: props.interactors.length ? props.interactors[0] : null,
             activeTracker: props.trackers.length ? props.trackers[0] : null,
             activeLabelID: props.labels.length ? props.labels[0].id as number : null,
@@ -355,7 +361,9 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
 
     private runInteractionRequest = async (interactionId: string): Promise<void> => {
         const { jobInstance, canvasInstance } = this.props;
-        const { activeInteractor, fetching, convertMasksToPolygons } = this.state;
+        const {
+            activeInteractor, fetching, convertMasksToPolygons, convertMasksToRotatedRects,
+        } = this.state;
 
         const { id, latestRequest } = this.interaction;
         if (id !== interactionId || !latestRequest || fetching) {
@@ -425,17 +433,28 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
             }
 
             if (this.interaction.lastestApproximatedPoints.length) {
-                canvasInstance.interact({
-                    enabled: true,
-                    intermediateShape: {
-                        shapeType: convertMasksToPolygons ? ShapeType.RECTANGLE : ShapeType.MASK,
-                        points: convertMasksToPolygons ? this.interaction.lastestApproximatedPoints.slice(1).flat() :
-                            this.interaction.latestResponse.rle,
-                        rotation: convertMasksToPolygons ? this.interaction.lastestApproximatedPoints[0][0] : 0.0,
-                        mask: convertMasksToPolygons ? this.interaction.latestResponse.rle : [],
-                    },
-                    onChangeToolsBlockerState: this.onChangeToolsBlockerState,
-                });
+                if (convertMasksToRotatedRects) {
+                    canvasInstance.interact({
+                        enabled: true,
+                        intermediateShape: {
+                            shapeType: ShapeType.RECTANGLE,
+                            points: this.interaction.lastestApproximatedPoints.slice(1).flat(),
+                            rotation: this.interaction.lastestApproximatedPoints[0][0],
+                            mask: this.interaction.latestResponse.rle,
+                        },
+                        onChangeToolsBlockerState: this.onChangeToolsBlockerState,
+                    });
+                } else {
+                    canvasInstance.interact({
+                        enabled: true,
+                        intermediateShape: {
+                            shapeType: convertMasksToPolygons ? ShapeType.POLYGON : ShapeType.MASK,
+                            points: convertMasksToPolygons ? this.interaction.lastestApproximatedPoints.flat() :
+                                this.interaction.latestResponse.rle,
+                        },
+                        onChangeToolsBlockerState: this.onChangeToolsBlockerState,
+                    });
+                }
             }
 
             setTimeout(() => this.runInteractionRequest(interactionId));
@@ -859,12 +878,12 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
     }
 
     private async constructFromPoints(): Promise<void> {
-        const { convertMasksToPolygons } = this.state;
+        const { convertMasksToPolygons, convertMasksToRotatedRects, keepOriginalMaskWhenConverting } = this.state;
         const {
             frame, labels, curZOrder, activeLabelID, createAnnotations,
         } = this.props;
 
-        if (convertMasksToPolygons) {
+        if (convertMasksToRotatedRects) {
             const object = new core.classes.ObjectState({
                 frame,
                 objectType: ObjectType.SHAPE,
@@ -877,19 +896,22 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                 rotation: this.interaction.lastestApproximatedPoints[0][0],
             });
 
-            const maskObject = new core.classes.ObjectState({
+            createAnnotations([object]);
+        } else if (convertMasksToPolygons) {
+            const object = new core.classes.ObjectState({
                 frame,
                 objectType: ObjectType.SHAPE,
                 source: core.enums.Source.SEMI_AUTO,
                 label: labels.length ? labels.filter((label: any) => label.id === activeLabelID)[0] : null,
-                shapeType: ShapeType.MASK,
-                points: this.interaction.latestResponse.rle,
+                shapeType: ShapeType.POLYGON,
+                points: this.interaction.lastestApproximatedPoints.flat(),
                 occluded: false,
                 zOrder: curZOrder,
             });
 
-            createAnnotations([object, maskObject]);
-        } else {
+            createAnnotations([object]);
+        }
+        if (!(convertMasksToPolygons || convertMasksToRotatedRects) || keepOriginalMaskWhenConverting) {
             const object = new core.classes.ObjectState({
                 frame,
                 objectType: ObjectType.SHAPE,
@@ -945,28 +967,51 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
     }
 
     private async approximateResponsePoints(points: number[][]): Promise<number[][]> {
-        // const { approxPolyAccuracy } = this.state;
+        const { approxPolyAccuracy, convertMasksToRotatedRects } = this.state;
         if (points.length > 3) {
             await this.initializeOpenCV();
-            // const threshold = thresholdFromAccuracy(approxPolyAccuracy);
-            return openCVWrapper.contours.approxRect(points);
+            const threshold = thresholdFromAccuracy(approxPolyAccuracy);
+            return convertMasksToRotatedRects ? openCVWrapper.contours.approxRect(points) :
+                openCVWrapper.contours.approxPoly(points, threshold);
         }
 
         return points;
     }
 
     private renderMasksConvertingBlock(): JSX.Element {
-        const { convertMasksToPolygons } = this.state;
+        const { convertMasksToPolygons, convertMasksToRotatedRects, keepOriginalMaskWhenConverting } = this.state;
         return (
-            <Row className='cvat-interactors-setups-container'>
-                <Switch
-                    checked={convertMasksToPolygons}
-                    onChange={(checked: boolean) => {
-                        this.setState({ convertMasksToPolygons: checked });
-                    }}
-                />
-                <Text>Convert masks to polygons</Text>
-            </Row>
+            <>
+                <Row className='cvat-interactors-setups-container'>
+                    <Switch
+                        checked={convertMasksToPolygons}
+                        onChange={(checked: boolean) => {
+                            this.setState({ convertMasksToPolygons: checked });
+                        }}
+                        disabled={convertMasksToRotatedRects}
+                    />
+                    <Text>Convert masks to polygons</Text>
+                </Row>
+                <Row className='cvat-interactors-setups-container'>
+                    <Switch
+                        checked={convertMasksToRotatedRects}
+                        onChange={(checked: boolean) => {
+                            this.setState({ convertMasksToRotatedRects: checked });
+                        }}
+                        disabled={convertMasksToPolygons}
+                    />
+                    <Text>Convert masks to rotated rectangles</Text>
+                </Row>
+                <Row className='cvat-interactors-setups-container'>
+                    <Switch
+                        checked={keepOriginalMaskWhenConverting}
+                        onChange={(checked: boolean) => {
+                            this.setState({ keepOriginalMaskWhenConverting: checked });
+                        }}
+                    />
+                    <Text>Keep the original mask when converting</Text>
+                </Row>
+            </>
         );
     }
 
@@ -1390,7 +1435,8 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
             interactors, detectors, trackers, isActivated, canvasInstance, labels, frameIsDeleted,
         } = this.props;
         const {
-            fetching, approxPolyAccuracy, pointsReceived, mode, portals, convertMasksToPolygons,
+            fetching, approxPolyAccuracy, pointsReceived, mode, portals,
+            convertMasksToPolygons, convertMasksToRotatedRects,
         } = this.state;
 
         if (![...interactors, ...detectors, ...trackers].length) return null;
@@ -1415,7 +1461,7 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
             };
 
         const showAnyContent = labels.length && !frameIsDeleted;
-        const showInteractionContent = isActivated && mode === 'interaction' && pointsReceived && convertMasksToPolygons;
+        const showInteractionContent = isActivated && mode === 'interaction' && pointsReceived && (convertMasksToPolygons || convertMasksToRotatedRects);
         const showDetectionContent = fetching && mode === 'detection';
 
         const interactionContent: JSX.Element | null = showInteractionContent ? (

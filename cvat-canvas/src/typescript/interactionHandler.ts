@@ -36,7 +36,7 @@ export class InteractionHandlerImpl implements InteractionHandler {
     private thresholdRectSize: number;
     private intermediateShape: PropType<InteractionData, 'intermediateShape'>;
     private drawnIntermediateShape: SVG.Shape;
-    private drawnIntermediateShape2: SVG.Shape;
+    private drawnIntermediateMask: SVG.Shape;
     private thresholdWasModified: boolean;
     private controlPointsSize: number;
     private selectedShapeOpacity: number;
@@ -245,10 +245,10 @@ export class InteractionHandlerImpl implements InteractionHandler {
             this.drawnIntermediateShape.remove();
             this.drawnIntermediateShape = null;
         }
-        if (this.drawnIntermediateShape2) {
-            this.selectize(false, this.drawnIntermediateShape2);
-            this.drawnIntermediateShape2.remove();
-            this.drawnIntermediateShape2 = null;
+        if (this.drawnIntermediateMask) {
+            this.selectize(false, this.drawnIntermediateMask);
+            this.drawnIntermediateMask.remove();
+            this.drawnIntermediateMask = null;
         }
 
         if (this.crosshair) {
@@ -295,9 +295,9 @@ export class InteractionHandlerImpl implements InteractionHandler {
             this.selectize(false, this.drawnIntermediateShape);
             this.drawnIntermediateShape.remove();
         }
-        if (this.drawnIntermediateShape2) {
-            this.selectize(false, this.drawnIntermediateShape2);
-            this.drawnIntermediateShape2.remove();
+        if (this.drawnIntermediateMask) {
+            this.selectize(false, this.drawnIntermediateMask);
+            this.drawnIntermediateMask.remove();
         }
 
         if (!intermediateShape) return;
@@ -353,16 +353,13 @@ export class InteractionHandlerImpl implements InteractionHandler {
                     'color-rendering': 'optimizeQuality',
                     'shape-rendering': 'geometricprecision',
                     'stroke-width': consts.BASE_STROKE_WIDTH / this.geometry.scale,
-                    stroke: 'purple',
+                    stroke: 'black',
                 })
                 .move(xtl, ytl)
                 .rotate(rotation)
-                .fill({ opacity: 0.0, color: 'white' }) // We need it invisible
+                .fill({ opacity: 0.0, color: 'white' })
                 .addClass('cvat_canvas_interact_intermediate_shape');
             this.selectize(true, this.drawnIntermediateShape);
-
-            // Mask portion
-
             const [left, top, right, bottom] = mask.slice(-4);
             const imageBitmap = expandChannels(255, 255, 255, mask);
 
@@ -373,7 +370,7 @@ export class InteractionHandlerImpl implements InteractionHandler {
                 opacity: 0.5,
             }).addClass('cvat_canvas_interact_intermediate_shape');
             image.move(this.geometry.offset + left, this.geometry.offset + top);
-            this.drawnIntermediateShape2 = image;
+            this.drawnIntermediateMask = image;
 
             imageDataToDataURL(
                 imageBitmap,
@@ -495,7 +492,7 @@ export class InteractionHandlerImpl implements InteractionHandler {
         this.thresholdRectSize = 300;
         this.intermediateShape = null;
         this.drawnIntermediateShape = null;
-        this.drawnIntermediateShape2 = null;
+        this.drawnIntermediateMask = null;
         this.controlPointsSize = configuration.controlPointsSize;
         this.selectedShapeOpacity = configuration.selectedShapeOpacity;
         this.cursorPosition = {
@@ -584,8 +581,8 @@ export class InteractionHandlerImpl implements InteractionHandler {
         if (this.drawnIntermediateShape) {
             this.drawnIntermediateShape.stroke({ width: consts.BASE_STROKE_WIDTH / this.geometry.scale });
         }
-        if (this.drawnIntermediateShape2) {
-            this.drawnIntermediateShape2.stroke({ width: consts.BASE_STROKE_WIDTH / this.geometry.scale });
+        if (this.drawnIntermediateMask) {
+            this.drawnIntermediateMask.stroke({ width: consts.BASE_STROKE_WIDTH / this.geometry.scale });
         }
     }
 
@@ -619,8 +616,8 @@ export class InteractionHandlerImpl implements InteractionHandler {
                 opacity: configuration.selectedShapeOpacity,
             });
         }
-        if (this.drawnIntermediateShape2) {
-            this.drawnIntermediateShape2.fill({
+        if (this.drawnIntermediateMask) {
+            this.drawnIntermediateMask.fill({
                 opacity: configuration.selectedShapeOpacity,
             });
         }

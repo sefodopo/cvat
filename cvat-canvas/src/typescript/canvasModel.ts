@@ -135,6 +135,8 @@ export interface InteractionData {
     intermediateShape?: {
         shapeType: string;
         points: number[];
+        rotation?: number;
+        mask?: number[];
     };
     onChangeToolsBlockerState?: (event: string) => void;
 }

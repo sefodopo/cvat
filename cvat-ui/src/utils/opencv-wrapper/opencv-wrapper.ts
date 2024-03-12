@@ -29,6 +29,7 @@ export interface Contours {
     convexHull: (src: any) => number[];
     findContours: (src: any, findLongest: boolean) => number[][];
     approxPoly: (points: number[] | any, threshold: number, closed?: boolean) => number[][];
+    approxRect: (points: number[] | any) => number[][];
 }
 
 export interface ImgProc {
@@ -238,6 +239,27 @@ export class OpenCVWrapper {
                     return result;
                 } finally {
                     approx.delete();
+                    contour.delete();
+                }
+            },
+            approxRect: (points: number[] | number[][]): number[][] => {
+                const isArrayOfArrays = Array.isArray(points[0]);
+                if (points.length < 3) {
+                    // one pair of coordinates [x, y], approximation not possible
+                    return (isArrayOfArrays ? points : [points]) as number[][];
+                }
+                const rows = isArrayOfArrays ? points.length : points.length / 2;
+                const cols = 2;
+
+                const contour = cv.matFromArray(rows, cols, cv.CV_32FC1, points.flat());
+                try {
+                    const rect = cv.minAreaRect(contour);
+                    const result = [];
+                    result.push([rect.angle]);
+                    result.push([rect.center.x - rect.size.width / 2, rect.center.y - rect.size.height / 2]);
+                    result.push([rect.center.x + rect.size.width / 2, rect.center.y + rect.size.height / 2]);
+                    return result;
+                } finally {
                     contour.delete();
                 }
             },

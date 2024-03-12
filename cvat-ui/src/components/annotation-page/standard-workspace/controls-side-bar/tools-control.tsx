@@ -46,9 +46,7 @@ import DetectorRunner, { DetectorRequestBody } from 'components/model-runner-mod
 import LabelSelector from 'components/label-selector/label-selector';
 import CVATTooltip from 'components/common/cvat-tooltip';
 
-import ApproximationAccuracy, {
-    thresholdFromAccuracy,
-} from 'components/annotation-page/standard-workspace/controls-side-bar/approximation-accuracy';
+import ApproximationAccuracy from 'components/annotation-page/standard-workspace/controls-side-bar/approximation-accuracy';
 import { switchToolsBlockerState } from 'actions/settings-actions';
 import { ReactMarkdown } from 'react-markdown/lib/react-markdown';
 import withVisibilityHandling from './handle-popover-visibility';
@@ -430,9 +428,11 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                 canvasInstance.interact({
                     enabled: true,
                     intermediateShape: {
-                        shapeType: convertMasksToPolygons ? ShapeType.POLYGON : ShapeType.MASK,
-                        points: convertMasksToPolygons ? this.interaction.lastestApproximatedPoints.flat() :
+                        shapeType: convertMasksToPolygons ? ShapeType.RECTANGLE : ShapeType.MASK,
+                        points: convertMasksToPolygons ? this.interaction.lastestApproximatedPoints.slice(1).flat() :
                             this.interaction.latestResponse.rle,
+                        rotation: convertMasksToPolygons ? this.interaction.lastestApproximatedPoints[0][0] : 0.0,
+                        mask: convertMasksToPolygons ? this.interaction.latestResponse.rle : [],
                     },
                     onChangeToolsBlockerState: this.onChangeToolsBlockerState,
                 });
@@ -870,13 +870,25 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                 objectType: ObjectType.SHAPE,
                 source: core.enums.Source.SEMI_AUTO,
                 label: labels.find((label) => label.id === activeLabelID as number) as Label,
-                shapeType: ShapeType.POLYGON,
-                points: this.interaction.lastestApproximatedPoints.flat(),
+                shapeType: ShapeType.RECTANGLE,
+                points: this.interaction.lastestApproximatedPoints.slice(1).flat(),
+                occluded: false,
+                zOrder: curZOrder,
+                rotation: this.interaction.lastestApproximatedPoints[0][0],
+            });
+
+            const maskObject = new core.classes.ObjectState({
+                frame,
+                objectType: ObjectType.SHAPE,
+                source: core.enums.Source.SEMI_AUTO,
+                label: labels.length ? labels.filter((label: any) => label.id === activeLabelID)[0] : null,
+                shapeType: ShapeType.MASK,
+                points: this.interaction.latestResponse.rle,
                 occluded: false,
                 zOrder: curZOrder,
             });
 
-            createAnnotations([object]);
+            createAnnotations([object, maskObject]);
         } else {
             const object = new core.classes.ObjectState({
                 frame,
@@ -933,11 +945,11 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
     }
 
     private async approximateResponsePoints(points: number[][]): Promise<number[][]> {
-        const { approxPolyAccuracy } = this.state;
+        // const { approxPolyAccuracy } = this.state;
         if (points.length > 3) {
             await this.initializeOpenCV();
-            const threshold = thresholdFromAccuracy(approxPolyAccuracy);
-            return openCVWrapper.contours.approxPoly(points, threshold);
+            // const threshold = thresholdFromAccuracy(approxPolyAccuracy);
+            return openCVWrapper.contours.approxRect(points);
         }
 
         return points;

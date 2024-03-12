@@ -36,6 +36,7 @@ export class InteractionHandlerImpl implements InteractionHandler {
     private thresholdRectSize: number;
     private intermediateShape: PropType<InteractionData, 'intermediateShape'>;
     private drawnIntermediateShape: SVG.Shape;
+    private drawnIntermediateShape2: SVG.Shape;
     private thresholdWasModified: boolean;
     private controlPointsSize: number;
     private selectedShapeOpacity: number;
@@ -244,6 +245,11 @@ export class InteractionHandlerImpl implements InteractionHandler {
             this.drawnIntermediateShape.remove();
             this.drawnIntermediateShape = null;
         }
+        if (this.drawnIntermediateShape2) {
+            this.selectize(false, this.drawnIntermediateShape2);
+            this.drawnIntermediateShape2.remove();
+            this.drawnIntermediateShape2 = null;
+        }
 
         if (this.crosshair) {
             this.removeCrosshair();
@@ -289,9 +295,15 @@ export class InteractionHandlerImpl implements InteractionHandler {
             this.selectize(false, this.drawnIntermediateShape);
             this.drawnIntermediateShape.remove();
         }
+        if (this.drawnIntermediateShape2) {
+            this.selectize(false, this.drawnIntermediateShape2);
+            this.drawnIntermediateShape2.remove();
+        }
 
         if (!intermediateShape) return;
-        const { shapeType, points } = intermediateShape;
+        const {
+            shapeType, points, rotation, mask,
+        } = intermediateShape;
         if (shapeType === 'polygon') {
             const erroredShape = shapeType === 'polygon' && points.length < 3 * 2;
             this.drawnIntermediateShape = this.canvas
@@ -317,6 +329,51 @@ export class InteractionHandlerImpl implements InteractionHandler {
             }).addClass('cvat_canvas_interact_intermediate_shape');
             image.move(this.geometry.offset + left, this.geometry.offset + top);
             this.drawnIntermediateShape = image;
+
+            imageDataToDataURL(
+                imageBitmap,
+                right - left + 1,
+                bottom - top + 1,
+                (dataURL: string) => new Promise((resolve, reject) => {
+                    image.loaded(() => {
+                        resolve();
+                    });
+                    image.error(() => {
+                        reject();
+                    });
+                    image.load(dataURL);
+                }),
+            );
+        } else if (shapeType === 'rectangle') {
+            const [xtl, ytl, xbr, ybr] = translateToCanvas(geometry.offset, points);
+            this.drawnIntermediateShape = this.canvas
+                .rect()
+                .size(xbr - xtl, ybr - ytl)
+                .attr({
+                    'color-rendering': 'optimizeQuality',
+                    'shape-rendering': 'geometricprecision',
+                    'stroke-width': consts.BASE_STROKE_WIDTH / this.geometry.scale,
+                    stroke: 'purple',
+                })
+                .move(xtl, ytl)
+                .rotate(rotation)
+                .fill({ opacity: 0.0, color: 'white' }) // We need it invisible
+                .addClass('cvat_canvas_interact_intermediate_shape');
+            this.selectize(true, this.drawnIntermediateShape);
+
+            // Mask portion
+
+            const [left, top, right, bottom] = mask.slice(-4);
+            const imageBitmap = expandChannels(255, 255, 255, mask);
+
+            const image = this.canvas.image().attr({
+                'color-rendering': 'optimizeQuality',
+                'shape-rendering': 'geometricprecision',
+                'pointer-events': 'none',
+                opacity: 0.5,
+            }).addClass('cvat_canvas_interact_intermediate_shape');
+            image.move(this.geometry.offset + left, this.geometry.offset + top);
+            this.drawnIntermediateShape2 = image;
 
             imageDataToDataURL(
                 imageBitmap,
@@ -438,6 +495,7 @@ export class InteractionHandlerImpl implements InteractionHandler {
         this.thresholdRectSize = 300;
         this.intermediateShape = null;
         this.drawnIntermediateShape = null;
+        this.drawnIntermediateShape2 = null;
         this.controlPointsSize = configuration.controlPointsSize;
         this.selectedShapeOpacity = configuration.selectedShapeOpacity;
         this.cursorPosition = {
@@ -526,6 +584,9 @@ export class InteractionHandlerImpl implements InteractionHandler {
         if (this.drawnIntermediateShape) {
             this.drawnIntermediateShape.stroke({ width: consts.BASE_STROKE_WIDTH / this.geometry.scale });
         }
+        if (this.drawnIntermediateShape2) {
+            this.drawnIntermediateShape2.stroke({ width: consts.BASE_STROKE_WIDTH / this.geometry.scale });
+        }
     }
 
     public interact(interactionData: InteractionData): void {
@@ -555,6 +616,11 @@ export class InteractionHandlerImpl implements InteractionHandler {
 
         if (this.drawnIntermediateShape) {
             this.drawnIntermediateShape.fill({
+                opacity: configuration.selectedShapeOpacity,
+            });
+        }
+        if (this.drawnIntermediateShape2) {
+            this.drawnIntermediateShape2.fill({
                 opacity: configuration.selectedShapeOpacity,
             });
         }

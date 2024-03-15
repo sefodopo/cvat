@@ -33,7 +33,7 @@ from rest_framework.request import Request
 
 import cvat.apps.dataset_manager as dm
 from cvat.apps.engine.frame_provider import FrameProvider
-from cvat.apps.engine.models import Job, ShapeType, SourceType, Task, Label
+from cvat.apps.engine.models import Job, ShapeType, SourceType, Task, Label, StorageChoice
 from cvat.apps.engine.serializers import LabeledDataSerializer
 from cvat.apps.lambda_manager.permissions import LambdaPermission
 from cvat.apps.lambda_manager.serializers import (
@@ -42,6 +42,7 @@ from cvat.apps.lambda_manager.serializers import (
 from cvat.apps.engine.utils import define_dependent_job, get_rq_job_meta, get_rq_lock_by_user
 from cvat.utils.http import make_requests_session
 from cvat.apps.iam.filters import ORGANIZATION_OPEN_API_PARAMETERS
+from utils.dataset_manifest.core import ImageManifestManager
 
 
 class LambdaType(Enum):
@@ -381,8 +382,20 @@ class LambdaFunction:
                 "image": self._get_image(db_task, mandatory_arg("frame"), quality)
             })
         elif self.kind == LambdaType.INTERACTOR:
+            frame = mandatory_arg("frame")
+            if self.id == 'pth-facebookresearch-sam-vit-h':
+                upload_dir = settings.SHARE_ROOT if db_task.data.storage == StorageChoice.SHARE else db_task.data.get_upload_dirname()
+                manifest = ImageManifestManager(db_task.data.get_manifest_path())
+                manifest.set_index()
+                item = manifest[frame]
+                source_path = os.path.join(upload_dir, f"{item['name']}.sam.npy")
+                if os.path.exists(source_path):
+                    if is_interactive and request:
+                        interactive_function_call_signal.send(sender=self, request=request)
+                    return { "blob": base64.b64encode(np.load(source_path, allow_pickle=False)).decode('utf-8') }
+
             payload.update({
-                "image": self._get_image(db_task, mandatory_arg("frame"), quality),
+                "image": self._get_image(db_task, frame, quality),
                 "pos_points": mandatory_arg("pos_points")[2:] if self.startswith_box else mandatory_arg("pos_points"),
                 "neg_points": mandatory_arg("neg_points"),
                 "obj_bbox": mandatory_arg("pos_points")[0:2] if self.startswith_box else None

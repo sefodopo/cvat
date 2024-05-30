@@ -13,6 +13,7 @@ from copy import deepcopy
 from datetime import timedelta
 from enum import Enum
 from functools import wraps
+from io import UnsupportedOperation
 from typing import Any, Dict, Optional
 
 import datumaro.util.mask_tools as mask_tools
@@ -20,7 +21,6 @@ import django_rq
 import numpy as np
 import requests
 import rq
-from cvat.apps.lambda_manager.signals import interactive_function_call_signal
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from drf_spectacular.types import OpenApiTypes
@@ -28,20 +28,22 @@ from drf_spectacular.utils import (OpenApiParameter, OpenApiResponse,
                                    extend_schema, extend_schema_view,
                                    inline_serializer)
 from rest_framework import serializers, status, viewsets
-from rest_framework.response import Response
 from rest_framework.request import Request
+from rest_framework.response import Response
 
 import cvat.apps.dataset_manager as dm
 from cvat.apps.engine.frame_provider import FrameProvider
-from cvat.apps.engine.models import Job, ShapeType, SourceType, Task, Label, StorageChoice
+from cvat.apps.engine.models import (DataChoice, Job, Label, ShapeType,
+                                     SourceType, StorageChoice, Task)
 from cvat.apps.engine.serializers import LabeledDataSerializer
+from cvat.apps.engine.utils import (define_dependent_job, get_rq_job_meta,
+                                    get_rq_lock_by_user)
+from cvat.apps.iam.filters import ORGANIZATION_OPEN_API_PARAMETERS
 from cvat.apps.lambda_manager.permissions import LambdaPermission
 from cvat.apps.lambda_manager.serializers import (
-    FunctionCallRequestSerializer, FunctionCallSerializer
-)
-from cvat.apps.engine.utils import define_dependent_job, get_rq_job_meta, get_rq_lock_by_user
+    FunctionCallRequestSerializer, FunctionCallSerializer)
+from cvat.apps.lambda_manager.signals import interactive_function_call_signal
 from cvat.utils.http import make_requests_session
-from cvat.apps.iam.filters import ORGANIZATION_OPEN_API_PARAMETERS
 from utils.dataset_manifest.core import ImageManifestManager
 
 
@@ -385,14 +387,19 @@ class LambdaFunction:
             frame = mandatory_arg("frame")
             if self.id == 'pth-facebookresearch-sam-vit-h':
                 upload_dir = settings.SHARE_ROOT if db_task.data.storage == StorageChoice.SHARE else db_task.data.get_upload_dirname()
-                manifest = ImageManifestManager(db_task.data.get_manifest_path())
-                manifest.set_index()
-                item = manifest[frame]
-                source_path = os.path.join(upload_dir, f"{item['name']}.sam.npy")
+                if task_data.original_chunk_type == DataChoice.VIDEO:
+                    source_path = os.path.join(upload_dir, f"frame_{frame:06d}.sam.npy")
+                else:
+                    manifest = ImageManifestManager(db_task.data.get_manifest_path())
+                    manifest.set_index()
+                    item = manifest[frame]
+                    source_path = os.path.join(upload_dir, f"{item['name']}.sam.npy")
                 if os.path.exists(source_path):
                     if is_interactive and request:
                         interactive_function_call_signal.send(sender=self, request=request)
                     return { "blob": base64.b64encode(np.load(source_path, allow_pickle=False)).decode('utf-8') }
+                raise ValidationError("SAM is not enabled for this frame. Ask Josh to enable it.",
+                                           code=status.HTTP_418_IM_A_TEAPOT)
 
             payload.update({
                 "image": self._get_image(db_task, frame, quality),

@@ -1,0 +1,971 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 4,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 25,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "9.3.6",
+      "targets": [
+        {
+          "builderOptions": {
+            "fields": [],
+            "filters": [],
+            "groupBy": [
+              "user_id"
+            ],
+            "metrics": [
+              {
+                "aggregation": "count",
+                "alias": "value",
+                "field": "*"
+              }
+            ],
+            "mode": "trend",
+            "orderBy": [],
+            "table": "events",
+            "timeField": "timestamp",
+            "timeFieldType": "DateTime64(3, 'Etc/UTC')"
+          },
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "format": 0,
+          "hide": false,
+          "meta": {
+            "builderOptions": {
+              "fields": [],
+              "filters": [],
+              "groupBy": [
+                "user_id"
+              ],
+              "metrics": [
+                {
+                  "aggregation": "count",
+                  "alias": "value",
+                  "field": "*"
+                }
+              ],
+              "mode": "trend",
+              "orderBy": [],
+              "table": "events",
+              "timeField": "timestamp",
+              "timeFieldType": "DateTime64(3, 'Etc/UTC')"
+            }
+          },
+          "queryType": "sql",
+          "rawSql": "SELECT $__timeInterval(timestamp) as time, toString(user_name), count() as User\r\nFROM events\r\nWHERE $__timeFilter(timestamp)\r\nGROUP BY time, user_name\r\nORDER BY time ASC, user_name ASC",
+          "refId": "A"
+        }
+      ],
+      "title": "User Activity",
+      "transformations": [],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 90,
+            "gradientMode": "scheme",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "builderOptions": {
+            "fields": [],
+            "filters": [],
+            "metrics": [
+              {
+                "aggregation": "count",
+                "alias": "Count",
+                "field": "*"
+              }
+            ],
+            "mode": "trend",
+            "orderBy": [],
+            "table": "events",
+            "timeField": "timestamp",
+            "timeFieldType": "DateTime64(3, 'Etc/UTC')"
+          },
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "format": 0,
+          "queryType": "builder",
+          "rawSql": "SELECT $__timeInterval(timestamp) as time,  count(*) Count FROM events WHERE $__timeFilter(timestamp) GROUP BY time ORDER BY time ASC",
+          "refId": "A"
+        }
+      ],
+      "title": "Overall Activity",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "inspect": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "User"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 106
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Project"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 76
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Task"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 40
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Job"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 56
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Working time(h)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 125
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Activity"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 79
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 20,
+        "w": 7,
+        "x": 0,
+        "y": 15
+      },
+      "id": 2,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": [
+            "Working time(h)",
+            "Activity"
+          ],
+          "reducer": [
+            "sum"
+          ],
+          "show": true
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "10.1.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "fields": [],
+              "limit": 100,
+              "mode": "list"
+            }
+          },
+          "queryType": "sql",
+          "rawSql": "SELECT\r\n  user_name as User,\r\n  project_id as Project,\r\n  task_id as Task,\r\n  job_id as Job, sum(JSONExtractUInt(payload, 'working_time')) / 1000 / 3600 as \"Working time(h)\",\r\n  count() as Activity\r\nFROM events\r\nWHERE JSONHas(payload, 'working_time')\r\n  AND $__timeFilter(timestamp)\r\n  AND user_name IN (${users})\r\n  AND (-1 IN (${projects}) OR project_id IN (${projects}))\r\n  AND task_id IN (${tasks})\r\n  AND job_id IN (${jobs})\r\n  AND source = 'server'\r\nGROUP BY user_name, project_id, task_id, job_id",
+          "refId": "A"
+        }
+      ],
+      "title": "Working time",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "inspect": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "User"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 86
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Project"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 65
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Task"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 47
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Working time(h)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 127
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Activity"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 73
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 20,
+        "w": 6,
+        "x": 7,
+        "y": 15
+      },
+      "id": 7,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": [
+            "Working time(h)",
+            "Activity"
+          ],
+          "reducer": [
+            "sum"
+          ],
+          "show": true
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "10.1.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "fields": [],
+              "limit": 100,
+              "mode": "list"
+            }
+          },
+          "queryType": "sql",
+          "rawSql": "SELECT\r\n  user_name as User,\r\n  project_id as Project,\r\n  task_id as Task, sum(JSONExtractUInt(payload, 'working_time')) / 1000 / 3600 as \"Working time(h)\",\r\n  count() as Activity\r\nFROM events\r\nWHERE JSONHas(payload, 'working_time')\r\n  AND $__timeFilter(timestamp)\r\n  AND user_name IN (${users})\r\n  AND (-1 IN (${projects}) OR project_id IN (${projects}))\r\n  AND task_id IN (${tasks})\r\n  AND job_id IN (${jobs})\r\n  AND source = 'server'\r\nGROUP BY user_name, project_id, task_id",
+          "refId": "A"
+        }
+      ],
+      "title": "Working time",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "inspect": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "User"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 86
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Project"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 65
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Task"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 47
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Working time(h)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 117
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Activity"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 73
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 20,
+        "w": 5,
+        "x": 13,
+        "y": 15
+      },
+      "id": 9,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": [
+            "Working time(h)",
+            "Activity"
+          ],
+          "reducer": [
+            "sum"
+          ],
+          "show": true
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "10.1.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "fields": [],
+              "limit": 100,
+              "mode": "list"
+            }
+          },
+          "queryType": "sql",
+          "rawSql": "SELECT\r\n  user_name as User,\r\n  project_id as Project,sum(JSONExtractUInt(payload, 'working_time')) / 1000 / 3600 as \"Working time(h)\",\r\n  count() as Activity\r\nFROM events\r\nWHERE JSONHas(payload, 'working_time')\r\n  AND $__timeFilter(timestamp)\r\n  AND user_name IN (${users})\r\n  AND (-1 IN (${projects}) OR project_id IN (${projects}))\r\n  AND task_id IN (${tasks})\r\n  AND job_id IN (${jobs})\r\n  AND source = 'server'\r\nGROUP BY user_name, project_id",
+          "refId": "A"
+        }
+      ],
+      "title": "Working time",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "PDEE91DDB90597936"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "inspect": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "User"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 108
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Working time(h)"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Activity"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 74
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 20,
+        "w": 5,
+        "x": 18,
+        "y": 15
+      },
+      "id": 8,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
+          "fields": [
+            "Working time(h)",
+            "Activity"
+          ],
+          "reducer": [
+            "sum"
+          ],
+          "show": true
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Working time(h)"
+          }
+        ]
+      },
+      "pluginVersion": "10.1.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "PDEE91DDB90597936"
+          },
+          "format": 1,
+          "meta": {
+            "builderOptions": {
+              "fields": [],
+              "limit": 100,
+              "mode": "list"
+            }
+          },
+          "queryType": "sql",
+          "rawSql": "SELECT\r\n  user_name as User, sum(JSONExtractUInt(payload, 'working_time')) / 1000 / 3600 as \"Working time(h)\",\r\n  count() as Activity\r\nFROM events\r\nWHERE JSONHas(payload, 'working_time')\r\n  AND $__timeFilter(timestamp)\r\n  AND user_name IN (${users})\r\n  AND (-1 IN (${projects}) OR project_id IN (${projects}))\r\n  AND task_id IN (${tasks})\r\n  AND job_id IN (${jobs})\r\n  AND source = 'server'\r\nGROUP BY user_name",
+          "refId": "A"
+        }
+      ],
+      "title": "Working time",
+      "type": "table"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "PDEE91DDB90597936"
+        },
+        "definition": "SELECT DISTINCT user_name\nFROM events\nWHERE $__timeFilter(timestamp)\n  AND source = 'client'",
+        "hide": 0,
+        "includeAll": true,
+        "label": "User",
+        "multi": true,
+        "name": "users",
+        "options": [],
+        "query": "SELECT DISTINCT user_name\nFROM events\nWHERE $__timeFilter(timestamp)\n  AND source = 'client'",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": "-1",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "PDEE91DDB90597936"
+        },
+        "definition": "SELECT DISTINCT project_id\nFROM events\nWHERE  $__timeFilter(timestamp)\n  AND project_id IS NOT NULL\n  AND source = 'client'",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Project",
+        "multi": true,
+        "name": "projects",
+        "options": [],
+        "query": "SELECT DISTINCT project_id\nFROM events\nWHERE  $__timeFilter(timestamp)\n  AND project_id IS NOT NULL\n  AND source = 'client'",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "PDEE91DDB90597936"
+        },
+        "definition": "SELECT DISTINCT task_id\nFROM events\nWHERE $__timeFilter(timestamp) \n  AND task_id IS NOT NULL\n  AND source = 'client'\n  AND (-1 IN (${projects}) OR project_id IN (${projects}))",
+        "description": "",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Task",
+        "multi": true,
+        "name": "tasks",
+        "options": [],
+        "query": "SELECT DISTINCT task_id\nFROM events\nWHERE $__timeFilter(timestamp) \n  AND task_id IS NOT NULL\n  AND source = 'client'\n  AND (-1 IN (${projects}) OR project_id IN (${projects}))",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "PDEE91DDB90597936"
+        },
+        "definition": "SELECT DISTINCT job_id\nFROM events\nWHERE $__timeFilter(timestamp)\n  AND job_id IS NOT NULL\n  AND source = 'client'\n  AND task_id in (${tasks})",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Job",
+        "multi": true,
+        "name": "jobs",
+        "options": [],
+        "query": "SELECT DISTINCT job_id\nFROM events\nWHERE $__timeFilter(timestamp)\n  AND job_id IS NOT NULL\n  AND source = 'client'\n  AND task_id in (${tasks})",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Management Usernames",
+  "uid": "e6cf2f1b-48d1-47cc-ae5a-13d9aed5e802",
+  "version": 6,
+  "weekStart": ""
+}

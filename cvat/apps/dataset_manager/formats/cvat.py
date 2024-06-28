@@ -9,6 +9,7 @@ import zipfile
 from collections import OrderedDict
 from glob import glob
 from io import BufferedWriter
+from pathlib import Path
 from typing import Callable
 
 from datumaro.components.annotation import (AnnotationType, Bbox, Label,
@@ -17,17 +18,20 @@ from datumaro.components.annotation import (AnnotationType, Bbox, Label,
 from datumaro.components.dataset import Dataset, DatasetItem
 from datumaro.components.extractor import (DEFAULT_SUBSET_NAME, Extractor,
                                            Importer)
-from datumaro.plugins.cvat_format.extractor import CvatImporter as _CvatImporter
-
+from datumaro.plugins.cvat_format.extractor import \
+    CvatImporter as _CvatImporter
 from datumaro.util.image import Image
 from defusedxml import ElementTree
+from django.conf import settings
 
-from cvat.apps.dataset_manager.bindings import (ProjectData, CommonData, detect_dataset,
+from cvat.apps.dataset_manager.bindings import (CommonData, ProjectData,
+                                                detect_dataset,
                                                 get_defaulted_subset,
                                                 import_dm_annotations,
                                                 match_dm_item)
 from cvat.apps.dataset_manager.util import make_zip_archive
 from cvat.apps.engine.frame_provider import FrameProvider
+from cvat.apps.engine.models import DataChoice, StorageChoice
 
 from .registry import dm_env, exporter, importer
 
@@ -1391,17 +1395,33 @@ def dump_media_files(instance_data: CommonData, img_dir: str, project_data: Proj
         with open(img_path, 'wb') as f:
             f.write(frame_data.getvalue())
 
-def _export_task_or_job(dst_file, temp_dir, instance_data, anno_callback, save_images=False):
+def dump_video_media(instance_data: CommonData, img_dir: str, project_data: ProjectData = None):
+    if instance_data.db_data.original_chunk_type != DataChoice.VIDEO:
+        subset = get_defaulted_subset(instance_data.db_instance.subset, project_data.subsets)
+        subset_dir = osp.join(img_dir, 'images', subset)
+        os.makedirs(subset_dir, exist_ok=True)
+        return dump_media_files(instance_data, subset_dir, project_data)
+
+    upload_dir = settings.SHARE_ROOT if instance_data.db_data.storage == StorageChoice.SHARE else instance_data.db_data.get_upload_dirname()
+    for file in Path(upload_dir).iterdir():
+        if file.suffix.lower() in ('.mp4', '.mkv', 'm4v', 'mov'):
+            os.link(file, osp.join(img_dir, file.name)) # Testing comment
+
+
+def _export_task_or_job(dst_file, temp_dir, instance_data, anno_callback, save_images=False, save_videos=False):
     with open(osp.join(temp_dir, 'annotations.xml'), 'wb') as f:
         dump_task_or_job_anno(f, instance_data, anno_callback)
 
     if save_images:
         dump_media_files(instance_data, osp.join(temp_dir, 'images'))
 
+    if save_videos:
+        dump_video_media(instance_data, temp_dir)
+
     make_zip_archive(temp_dir, dst_file)
 
 def _export_project(dst_file: str, temp_dir: str, project_data: ProjectData,
-    anno_callback: Callable, save_images: bool=False
+                    anno_callback: Callable, save_images: bool=False, save_videos: bool=False
 ):
     with open(osp.join(temp_dir, 'annotations.xml'), 'wb') as f:
         dump_project_anno(f, project_data, anno_callback)
@@ -1412,6 +1432,9 @@ def _export_project(dst_file: str, temp_dir: str, project_data: ProjectData,
             subset_dir = osp.join(temp_dir, 'images', subset)
             os.makedirs(subset_dir, exist_ok=True)
             dump_media_files(task_data, subset_dir, project_data)
+    if save_videos:
+        for task_data in project_data.task_data:
+            dump_video_media(task_data, temp_dir, project_data)
 
     make_zip_archive(temp_dir, dst_file)
 
@@ -1432,6 +1455,15 @@ def _export_images(dst_file, temp_dir, instance_data, save_images=False):
     else:
         _export_task_or_job(dst_file, temp_dir, instance_data,
             anno_callback=dump_as_cvat_annotation, save_images=save_images)
+
+@exporter(name='CVAT for Path Planning', ext='ZIP', version='1.1')
+def _export_path_planning(dst_file, temp_dir, instance_data, save_images=False):
+    if isinstance(instance_data, ProjectData):
+        _export_project(dst_file, temp_dir, instance_data,
+            anno_callback=dump_as_cvat_annotation, save_videos=save_images)
+    else:
+        _export_task_or_job(dst_file, temp_dir, instance_data,
+            anno_callback=dump_as_cvat_annotation, save_videos=save_images)
 
 @importer(name='CVAT', ext='XML, ZIP', version='1.1')
 def _import(src_file, temp_dir, instance_data, load_data_callback=None, **kwargs):
